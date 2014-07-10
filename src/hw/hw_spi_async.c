@@ -62,6 +62,7 @@ void hw_spi_dma_counter (uint8_t channel){
 
 void default_complete_cb() {
   spi_async_status.chunk_offset += spi_async_status.chunk_size;
+  TM_DEBUG("complete %d %d", spi_async_status.chunk_offset, spi_async_status.repeat);
 
   if ((spi_async_status.chunk_offset + spi_async_status.chunk_size) >= spi_async_status.bufferLength) {
     spi_async_status.chunk_offset = 0;
@@ -70,10 +71,10 @@ void default_complete_cb() {
       tm_event_trigger(&async_spi_event);
       return;
     } 
-
-  } else {
-    hw_spi_transfer_step();
   }
+  
+  hw_spi_transfer_step();
+  
 }
 
 uint32_t hw_spi_dma_num_linked_lists (size_t buf_len) {
@@ -83,6 +84,12 @@ uint32_t hw_spi_dma_num_linked_lists (size_t buf_len) {
   uint32_t num_remaining_bytes = buf_len % SPI_MAX_DMA_SIZE;
   // Get the total number of packets including incomplete packets
   return num_full_packets + (num_remaining_bytes ? 1 : 0);
+}
+
+void hw_spi_cycle_cs (uint8_t cs_pin) {
+  hw_digital_write(cs_pin, 1);
+  hw_wait_us(1);
+  hw_digital_write(cs_pin, 0);
 }
 
 hw_GPDMA_Linked_List_Type * hw_spi_dma_packetize_setup (size_t buf_len) {
@@ -201,7 +208,7 @@ void async_spi_callback (void) {
 }
 
 int hw_spi_transfer_setup (size_t port, size_t bufferLength, const uint8_t *txbuf, uint8_t *rxbuf, 
-  uint32_t txref, uint32_t rxref, size_t chunk_size, uint32_t repeat, void (*callback)())
+  uint32_t txref, uint32_t rxref, size_t chunk_size, uint32_t repeat, uint8_t chip_select, void (*callback)())
 {
   hw_spi_t *SPIx = find_spi(port);
 
@@ -234,6 +241,7 @@ int hw_spi_transfer_setup (size_t port, size_t bufferLength, const uint8_t *txbu
   spi_async_status.chunk_size = chunk_size;
   spi_async_status.repeat = repeat;
   spi_async_status.chunk_offset = 0;
+  spi_async_status.chip_select = chip_select;
 
   if (rxbuf != NULL) {
     // Destination connection - unused
@@ -275,6 +283,7 @@ int hw_spi_transfer_setup (size_t port, size_t bufferLength, const uint8_t *txbu
 }
 
 void hw_spi_transfer_step() {
+  hw_spi_cycle_cs(spi_async_status.chip_select);
   if (spi_async_status.rxbuf != NULL) {
     hw_spi_dma_packetize_step(spi_async_status.rx_Linked_List, spi_async_status.chunk_size, hw_gpdma_get_lli_conn_address(spi_async_status.rx_config.SrcConn), spi_async_status.rxbuf + spi_async_status.chunk_offset, 0);
 
@@ -290,10 +299,11 @@ void hw_spi_transfer_step() {
   }
 }
 
-int hw_spi_transfer (size_t port, size_t bufferLength, const uint8_t *txbuf, uint8_t *rxbuf, uint32_t txref, uint32_t rxref, size_t chunk_size, uint32_t repeat, void (*callback)())
+int hw_spi_transfer (size_t port, size_t buffer_length, const uint8_t *txbuf, uint8_t *rxbuf, uint32_t txref, uint32_t rxref, size_t chunk_size, uint32_t repeat, uint8_t chip_select, void (*callback)())
 {
-  hw_spi_transfer_setup (port, bufferLength, txbuf, rxbuf, txref, rxref, chunk_size, repeat, callback);
-  if (repeat == 0 || chunk_size > bufferLength) {
+  TM_DEBUG("bufferLength %d, chunk size %d, repeat %d, chip_select %d", buffer_length, chunk_size, repeat, chip_select);
+  hw_spi_transfer_setup (port, buffer_length, txbuf, rxbuf, txref, rxref, chunk_size, repeat, chip_select, callback);
+  if (repeat == 0 || chunk_size > buffer_length) {
     tm_event_trigger(&async_spi_event);
   }
   hw_spi_transfer_step();
