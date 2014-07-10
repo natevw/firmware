@@ -63,8 +63,8 @@ void hw_spi_dma_counter (uint8_t channel){
 void default_complete_cb() {
   // Set offset to next command in the txbuf
   spi_async_status.chunk_offset += spi_async_status.chunk_size;
-  TM_DEBUG("chunk offset %d chunk_size %d bufflength", spi_async_status.chunk_offset, spi_async_status.chunk_size, spi_async_status.bufferLength);
-  if ((spi_async_status.chunk_offset + spi_async_status.chunk_size) >= spi_async_status.bufferLength) {
+
+  if ((spi_async_status.chunk_offset + spi_async_status.chunk_size) > spi_async_status.bufferLength) {
     spi_async_status.chunk_offset = 0;
     
     if (--spi_async_status.repeat == 0) {
@@ -74,7 +74,6 @@ void default_complete_cb() {
   }
   
   hw_spi_transfer_step();
-  
 }
 
 uint32_t hw_spi_dma_num_linked_lists (size_t buf_len) {
@@ -283,6 +282,7 @@ int hw_spi_transfer_setup (size_t port, size_t bufferLength, const uint8_t *txbu
 }
 
 void hw_spi_transfer_step() {
+  TM_DEBUG("step");
   hw_spi_cycle_cs(spi_async_status.chip_select);
 
   if (spi_async_status.rxbuf != NULL) {
@@ -296,6 +296,7 @@ void hw_spi_transfer_step() {
     hw_spi_dma_packetize_step(spi_async_status.tx_Linked_List, spi_async_status.chunk_size, spi_async_status.txbuf + spi_async_status.chunk_offset, hw_gpdma_get_lli_conn_address(spi_async_status.tx_config.DestConn), 1);
 
     // Begin the transmission
+    TM_DEBUG("dma transmission begin");
     hw_gpdma_transfer_begin(tx_chan, spi_async_status.tx_Linked_List);
   }
 }

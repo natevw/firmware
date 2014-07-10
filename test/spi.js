@@ -36,7 +36,7 @@ function wrapCallback(t, cb) {
 
 test('batch transfer with chunks', function(t) {
   var outBuf = testBuf(12);
-  spi.transferBatch(outBuf, {chunkSize:4}, wrapCallback(t, function(err, d) {
+  spi.transferBatch(outBuf, {chunkSize:3}, wrapCallback(t, function(err, d) {
     t.error(err);
     t.equal(d.toString('hex'), outBuf.toString('hex'));
     t.end();
