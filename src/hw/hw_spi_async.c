@@ -285,14 +285,14 @@ int hw_spi_transfer_setup (size_t port, size_t bufferLength, const uint8_t *txbu
 void hw_spi_transfer_step() {
   hw_spi_cycle_cs(spi_async_status.chip_select);
   if (spi_async_status.rxbuf != NULL) {
-    hw_spi_dma_packetize_step(spi_async_status.rx_Linked_List, spi_async_status.chunk_size, hw_gpdma_get_lli_conn_address(spi_async_status.rx_config.SrcConn), spi_async_status.rxbuf + spi_async_status.chunk_offset, 0);
+    hw_spi_dma_packetize_step(spi_async_status.rx_Linked_List, spi_async_status.chunk_size, hw_gpdma_get_lli_conn_address(spi_async_status.rx_config.SrcConn), spi_async_status.rxbuf, 0);
 
     // Begin the reception
     hw_gpdma_transfer_begin(rx_chan, spi_async_status.rx_Linked_List); 
   }
 
   if (spi_async_status.txbuf != NULL) {
-    hw_spi_dma_packetize_step(spi_async_status.tx_Linked_List, spi_async_status.chunk_size, spi_async_status.txbuf + spi_async_status.chunk_offset, hw_gpdma_get_lli_conn_address(spi_async_status.tx_config.DestConn), 1);
+    hw_spi_dma_packetize_step(spi_async_status.tx_Linked_List, spi_async_status.chunk_size, spi_async_status.txbuf, hw_gpdma_get_lli_conn_address(spi_async_status.tx_config.DestConn), 1);
 
     // Begin the transmission
     hw_gpdma_transfer_begin(tx_chan, spi_async_status.tx_Linked_List);
