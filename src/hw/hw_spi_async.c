@@ -285,6 +285,9 @@ void hw_spi_transfer_step() {
   TM_DEBUG("step");
   hw_spi_cycle_cs(spi_async_status.chip_select);
 
+  spi_async_status.transferCount = 0;
+  spi_async_status.transferError = 0;
+
   if (spi_async_status.rxbuf != NULL) {
     hw_spi_dma_packetize_step(spi_async_status.rx_Linked_List, spi_async_status.chunk_size, hw_gpdma_get_lli_conn_address(spi_async_status.rx_config.SrcConn), spi_async_status.rxbuf + spi_async_status.chunk_offset, 0);
 
