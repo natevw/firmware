@@ -770,8 +770,8 @@ UART.prototype.setBaudRate = function(baudRate){
 UART.prototype._write = function(chunk, encoding, callback) {
    // make it async
    setImmediate(function(){
-     var res = hw.uart_send(this.uartPort, chunk);
-     callback(res !== chunk.length ? new Error('Ring buffer is full') : null);
+     hw.uart_send(this.uartPort, chunk);
+     callback();
    }.bind(this));
 };
 
